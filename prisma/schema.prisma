@@ -13,3 +13,57 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Event {
+  id          String      @id @default(uuid())
+  type        EventType
+  payload     Json
+  partnerId   String
+  status      EventStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  processedAt DateTime?
+  logs        EventLog[]
+  partner     Partner     @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([type])
+}
+
+model EventLog {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  status    String
+  message   String?
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}
+
+model Partner {
+  id        String   @id @default(uuid())
+  name      String
+  apiKey    String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    Event[]
+
+  @@index([apiKey])
+}
+
+enum EventType {
+  VENDA
+  DEVOLUCAO
+  ATUALIZACAO_ESTOQUE
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+}
